@@ -1,0 +1,101 @@
+{
+  "info": {
+    "name": "Propositions API",
+    "_postman_id": "12345678-aaaa-bbbb-cccc-1234567890ab",
+    "description": "Collection para testar a API de proposições e deputados",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "GET /propositions",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/propositions?title=&author=&type_code=&year=&status=",
+          "host": ["{{baseUrl}}"],
+          "path": ["propositions"],
+          "query": [
+            { "key": "title", "value": "" },
+            { "key": "author", "value": "" },
+            { "key": "type_code", "value": "" },
+            { "key": "year", "value": "" },
+            { "key": "status", "value": "" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "GET /propositions/:id",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/propositions/12345",
+          "host": ["{{baseUrl}}"],
+          "path": ["propositions", "12345"]
+        }
+      }
+    },
+    {
+      "name": "GET /propositions/:id/votes",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/propositions/12345/votes",
+          "host": ["{{baseUrl}}"],
+          "path": ["propositions", "12345", "votes"]
+        }
+      }
+    },
+    {
+      "name": "GET /propositions/:id/authors",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/propositions/12345/authors",
+          "host": ["{{baseUrl}}"],
+          "path": ["propositions", "12345", "authors"]
+        }
+      }
+    },
+    {
+      "name": "GET /deputies",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/deputies?name=&party=&deputy_id=",
+          "host": ["{{baseUrl}}"],
+          "path": ["deputies"],
+          "query": [
+            { "key": "name", "value": "" },
+            { "key": "party", "value": "" },
+            { "key": "deputy_id", "value": "" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "GET /deputies/:id/propositions",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/deputies/123/propositions",
+          "host": ["{{baseUrl}}"],
+          "path": ["deputies", "123", "propositions"]
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    }
+  ]
+}

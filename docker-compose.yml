@@ -1,0 +1,25 @@
+version: "3.8"
+
+services:
+  api:
+    build:
+      context: ./api
+    container_name: propositions_api
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      MONGO_URI: mongodb+srv://space_user:yNPBfuIk266JjjjO@clusterdbmongoatlas.mc74nzn.mongodb.net/congressonamao?retryWrites=true&w=majority&appName=ClusterDbMongoAtlas"
+    volumes:
+      - ./api:/app
+
+  crawler:
+    build:
+      context: ./crawler
+    container_name: propositions_crawler
+    restart: "no"       # <-- evita reinício automático
+    environment:
+      MONGO_URI: mongodb+srv://space_user:yNPBfuIk266JjjjO@clusterdbmongoatlas.mc74nzn.mongodb.net/congressonamao?retryWrites=true&w=majority&appName=ClusterDbMongoAtlas
+      CRON_SCHEDULE: "0 0 * * 0"
+    volumes:
+      - ./crawler:/app
