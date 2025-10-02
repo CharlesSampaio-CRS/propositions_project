@@ -1,23 +1,13 @@
 {
-  "name": "propositions-api",
+  "name": "central_api",
   "version": "1.0.0",
-  "description": "API para o projeto Propositions",
-  "main": "server.js",
+  "type": "module",
   "scripts": {
-    "start": "node server.js",
-    "dev": "nodemon server.js"
+    "start": "node index.js"
   },
-  "dependencies": {
-    "axios": "^1.12.2",
-    "dotenv": "^16.3.1",
-    "fastify": "^4.24.0",
-    "mongoose": "^8.18.2",
-    "p-limit": "^7.1.1",
-    "pg": "^8.11.1"
-  },
-  "devDependencies": {
-    "nodemon": "^3.0.2"
-  },
-  "author": "Charles Sampaio",
-  "license": "MIT"
+    "dependencies": {
+      "fastify": "^5.1.0",
+      "dotenv": "^16.0.3",
+      "axios": "^1.7.0"
+    }  
 }

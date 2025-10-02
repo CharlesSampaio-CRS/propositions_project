@@ -1,16 +1,20 @@
-FROM node:22-alpine
+# Base Node 20
+FROM node:20
 
+# Diretório de trabalho
 WORKDIR /app
 
-# Copia package.json e package-lock.json primeiro para aproveitar cache do Docker
+# Copiar package.json e package-lock.json
 COPY package*.json ./
 
-# Instala dependências
-RUN npm install 
+# Instalar dependências
+RUN npm install --omit=dev
 
-# Copia todo o restante do projeto
+# Copiar todo o código da aplicação
 COPY . .
 
-EXPOSE 3000
+# Expor porta
+EXPOSE 3005
 
-CMD ["npm", "start"]
+# Comando para iniciar
+CMD ["node", "index.js"]
