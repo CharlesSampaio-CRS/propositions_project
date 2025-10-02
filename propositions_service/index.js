@@ -82,25 +82,26 @@
   // =======================
   async function processProposition(proposition) {
     if (!proposition.id) return;
-
+  
     try {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const existing = await Proposition.findOne({ propositionId: proposition.id });
-      if (existing?.dateProcessed) {
-        const processedDate = new Date(existing.dateProcessed);
-        processedDate.setHours(0, 0, 0, 0);
-        if (processedDate.getTime() === today.getTime()) {
-          console.log(`ℹ️ Proposition ${proposition.id} já foi processada`);
-          return;
-        }
-      }
-
       const [details, authors] = await Promise.all([
         fetchPropositionDetails(proposition.id),
         fetchAuthors(proposition.id),
       ]);
-
+  
+      const apiStatusDate = details.statusProposicao?.dataHora
+        ? new Date(details.statusProposicao.dataHora)
+        : null;
+  
+      const existing = await Proposition.findOne({ propositionId: proposition.id });
+  
+      if (existing?.status?.dateTime && apiStatusDate) {
+        if (existing.status.dateTime.getTime() === apiStatusDate.getTime()) {
+          console.log(`🔹 Proposition ${proposition.id} already processed`);
+          return; // nada mudou, pula
+        }
+      }
+  
       const propositionData = {
         propositionId: proposition.id,
         type: proposition.siglaTipo,
@@ -118,26 +119,24 @@
           orgaShort: details.statusProposicao?.siglaOrgao || null,
           orgaDescription: details.statusProposicao?.descricaoOrgao || null,
           dispatch: details.statusProposicao?.despacho || null,
-          dateTime: details.statusProposicao?.dataHora ? new Date(details.statusProposicao.dataHora) : null,
+          dateTime: apiStatusDate,
         },
         authors,
         link: `https://www.camara.leg.br/proposicoesWeb/fichadetramitacao?idProposicao=${proposition.id}`,
-        dateProcessed: today,
+        dateProcessed: new Date(),
       };
-
+  
       await Proposition.findOneAndUpdate(
-        { proposition_id: proposition.id },
+        { propositionId: proposition.id },
         propositionData,
         { upsert: true, new: true }
       );
-      console.log(`✅ Proposition ${proposition.id} processed`);
-
-
+  
     } catch (err) {
       console.error(`❌ Error processing proposition ${proposition.id}:`, err.message);
     }
   }
-
+  
   // =======================
   // Crawler Controller
   // =======================
