@@ -5,6 +5,9 @@ import axios from "axios";
 
 dotenv.config();
 
+// =======================
+// MongoDB
+// =======================
 mongoose
   .connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
   .then(() => console.log("📦 MongoDB connected"))
@@ -18,23 +21,14 @@ const deputySchema = new mongoose.Schema({
   email: String,
   phone: String,
   photo_url: String,
-  mandate: {
-    start: { type: Date, default: null },
-    end: { type: Date, default: null },
-    type: { type: String, default: null }
-  },
-  office: {
-    name: String,
-    room: String,
-    phone: String,
-    email: String,
-  },
-  dateProcessed: Date, // controla processamento diário
+  mandate: { type: mongoose.Schema.Types.Mixed, default: null },
+  office: { type: mongoose.Schema.Types.Mixed, default: null },
+  dateProcessed: Date,
 }, { strict: false });
 
 const Deputy = mongoose.model("Deputy", deputySchema);
 
-const fastify = Fastify({ logger: false }); // logs desativados
+const fastify = Fastify({ logger: false });
 const baseUrl = "https://dadosabertos.camara.leg.br/api/v2";
 
 let crawling = false;
@@ -46,6 +40,7 @@ async function fetchWithRetry(url, retries = 3, delay = 2000) {
       const res = await axios.get(url, { headers: { Accept: "application/json" }, timeout: 60000 });
       return res.data;
     } catch (err) {
+      console.error(`❌ Fetch error for URL ${url} (attempt ${i + 1}):`, err.message);
       if (i === retries - 1) throw err;
       await new Promise(r => setTimeout(r, delay * (i + 1)));
     }
@@ -55,55 +50,63 @@ async function fetchWithRetry(url, retries = 3, delay = 2000) {
 async function runCrawler() {
   crawling = true;
   let page = 1;
-
-  const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
+  const today = new Date().toISOString().split("T")[0];
 
   while (crawling) {
-    const url = `${baseUrl}/deputados?itens=100&pagina=${page}`;
-    const data = await fetchWithRetry(url);
-    const deputies = data.dados || [];
+    try {
+      const url = `${baseUrl}/deputados?itens=100&pagina=${page}`;
+      const data = await fetchWithRetry(url);
+      const deputies = data.dados || [];
 
-    if (!deputies.length) break;
+      if (!deputies.length) break;
 
-    for (const d of deputies) {
-      if (!crawling) break;
+      for (const d of deputies) {
+        if (!crawling) break;
 
-      // verifica se já foi processado hoje
-      const existing = await Deputy.findOne({ deputy_id: d.id });
-      if (existing?.dateProcessed?.toISOString().split("T")[0] === today) continue;
+        try {
+          const deputyData = {
+            deputy_id: d.id,
+            name: d.nome,
+            party: d.siglaPartido,
+            state: d.siglaUf,
+            email: d.email,
+            phone: d.telefone,
+            photo_url: d.urlFoto,
+            mandate: d.ultimoStatus?.mandato
+              ? {
+                  start: d.ultimoStatus.mandato.dataInicio ? new Date(d.ultimoStatus.mandato.dataInicio) : null,
+                  end: d.ultimoStatus.mandato.dataFim ? new Date(d.ultimoStatus.mandato.dataFim) : null,
+                  type: d.ultimoStatus.mandato.tipoMandato || null,
+                }
+              : null,
+            office: d.ultimoStatus?.gabinete
+              ? {
+                  name: d.ultimoStatus.gabinete.nome || null,
+                  room: d.ultimoStatus.gabinete.sala || null,
+                  phone: d.ultimoStatus.gabinete.telefone || null,
+                  email: d.ultimoStatus.gabinete.email || null,
+                }
+              : null,
+            dateProcessed: new Date(),
+          };
+        
+          await Deputy.findOneAndUpdate(
+            { deputy_id: d.id }, 
+            { $set: deputyData },
+            { upsert: true, new: true }
+          );
+        } catch (err) {
+          console.error(`❌ Error saving deputy ${d.id} - ${d.nome}:`, err);
+        }
+      }
 
-      const deputyData = {
-        deputy_id: d.id,
-        name: d.nome,
-        party: d.siglaPartido,
-        state: d.siglaUf,
-        email: d.email,
-        phone: d.telefone,
-        photo_url: d.urlFoto,
-        mandate: {
-          start: d.ultimoStatus?.mandato?.dataInicio ? new Date(d.ultimoStatus.mandato.dataInicio) : null,
-          end: d.ultimoStatus?.mandato?.dataFim ? new Date(d.ultimoStatus.mandato.dataFim) : null,
-          type: d.ultimoStatus?.mandato?.tipoMandato || null,
-        },
-        office: {
-          name: d.ultimoStatus?.gabinete?.nome || null,
-          room: d.ultimoStatus?.gabinete?.sala || null,
-          phone: d.ultimoStatus?.gabinete?.telefone || null,
-          email: d.ultimoStatus?.gabinete?.email || null,
-        },
-        dateProcessed: new Date(), // marca processamento de hoje
-      };
+      page++;
 
-      await Deputy.findOneAndUpdate(
-        { deputy_id: d.id },
-        deputyData,
-        { upsert: true, new: true }
-      );
+    } catch (err) {
+      console.error(`❌ Error fetching page ${page}:`, err);
+      await new Promise(r => setTimeout(r, 5000));
     }
-
-    page++;
   }
-
   crawling = false;
 }
 
@@ -124,7 +127,10 @@ fastify.get("/deputies/stop", async () => {
   return { message: "Deputies crawler is not running" };
 });
 
+
 fastify.listen({ port: 3002, host: "0.0.0.0" }, (err, address) => {
   if (err) throw err;
   console.log(`🚀 Deputies Service running at ${address}`);
 });
+
+
