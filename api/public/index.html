@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Central API Dashboard</title>
+<link rel="stylesheet" href="style.css">
+<script defer src="script.js"></script>
+</head>
+<body>
+<header><h1>Central API Dashboard</h1></header>
+<main class="cards-container">
+  <div class="crawler-card" id="propositions">
+    <h2>Propositions</h2>
+    <div class="status">
+      <span class="status-indicator" id="propositions-indicator"></span>
+      <span class="status-text" id="propositions-status">Parado</span>
+    </div>
+    <div class="counter">Processados: <span id="propositions-count">0</span></div>
+    <div class="buttons">
+      <button onclick="startCrawler('propositions')">Iniciar</button>
+      <button onclick="stopCrawler('propositions')">Parar</button>
+    </div>
+  </div>
+
+  <div class="crawler-card" id="votes">
+    <h2>Votes</h2>
+    <div class="status">
+      <span class="status-indicator" id="votes-indicator"></span>
+      <span class="status-text" id="votes-status">Parado</span>
+    </div>
+    <div class="counter">Processados: <span id="votes-count">0</span></div>
+    <div class="buttons">
+      <button onclick="startCrawler('votes')">Iniciar</button>
+      <button onclick="stopCrawler('votes')">Parar</button>
+    </div>
+  </div>
+
+  <div class="crawler-card" id="deputies">
+    <h2>Deputies</h2>
+    <div class="status">
+      <span class="status-indicator" id="deputies-indicator"></span>
+      <span class="status-text" id="deputies-status">Parado</span>
+    </div>
+    <div class="counter">Processados: <span id="deputies-count">0</span></div>
+    <div class="buttons">
+      <button onclick="startCrawler('deputies')">Iniciar</button>
+      <button onclick="stopCrawler('deputies')">Parar</button>
+    </div>
+  </div>
+</main>
+<div id="toast"></div>
+</body>
+</html>
