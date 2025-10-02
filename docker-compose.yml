@@ -1,25 +1,46 @@
 version: "3.8"
 
 services:
-  api:
+  propositions_service:
     build:
-      context: ./api
-    container_name: propositions_api
-    restart: always
+      context: ./propositions_service
+      dockerfile: Dockerfile
+    container_name: propositions_service
+    environment:
+      - MONGO_URI=mongodb+srv://space_user:yNPBfuIk266JjjjO@clusterdbmongoatlas.mc74nzn.mongodb.net/congressonamao?retryWrites=true&w=majority&appName=ClusterDbMongoAtlas
     ports:
       - "3000:3000"
-    environment:
-      MONGO_URI: mongodb+srv://space_user:yNPBfuIk266JjjjO@clusterdbmongoatlas.mc74nzn.mongodb.net/congressonamao?retryWrites=true&w=majority&appName=ClusterDbMongoAtlas"
-    volumes:
-      - ./api:/app
 
-  crawler:
+  votes_service:
     build:
-      context: ./crawler
-    container_name: propositions_crawler
-    restart: "no"       # <-- evita reinício automático
+      context: ./votes_service
+      dockerfile: Dockerfile
+    container_name: votes_service
     environment:
-      MONGO_URI: mongodb+srv://space_user:yNPBfuIk266JjjjO@clusterdbmongoatlas.mc74nzn.mongodb.net/congressonamao?retryWrites=true&w=majority&appName=ClusterDbMongoAtlas
-      CRON_SCHEDULE: "0 0 * * 0"
-    volumes:
-      - ./crawler:/app
+      - MONGO_URI=mongodb+srv://space_user:yNPBfuIk266JjjjO@clusterdbmongoatlas.mc74nzn.mongodb.net/congressonamao?retryWrites=true&w=majority&appName=ClusterDbMongoAtlas
+    ports:
+      - "3001:3001"
+
+  deputies_service:
+    build:
+      context: ./deputies_service
+      dockerfile: Dockerfile
+    container_name: deputies_service
+    environment:
+      - MONGO_URI=mongodb+srv://space_user:yNPBfuIk266JjjjO@clusterdbmongoatlas.mc74nzn.mongodb.net/congressonamao?retryWrites=true&w=majority&appName=ClusterDbMongoAtlas
+    ports:
+      - "3002:3002"
+
+  api_service:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: api_service
+    environment:
+      - MONGO_URI=mongodb+srv://space_user:yNPBfuIk266JjjjO@clusterdbmongoatlas.mc74nzn.mongodb.net/congressonamao?retryWrites=true&w=majority&appName=ClusterDbMongoAtlas
+    ports:
+      - "3005:3005"
+    depends_on:
+      - propositions_service
+      - votes_service
+      - deputies_service
