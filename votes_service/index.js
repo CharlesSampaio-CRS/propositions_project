@@ -147,14 +147,13 @@ async function runCrawler() {
       for (const v of votos) {
         const deputyId = Number(v.deputado_.id);
         if (isNaN(deputyId)) continue;
-
-        const voteValue =
-          v.tipoVoto === "Sim" ? "Sim" :
-          v.tipoVoto === "Não" ? "Não" : "Outros";
-
+      
+        // Salva exatamente o valor retornado pela API
+        const voteValue = v.tipoVoto; // Ex: "Sim", "Não", "Abstenção", "Obstrução", etc.
+      
         if (voteValue === "Sim") totalYes++;
         if (voteValue === "Não") totalNo++;
-
+      
         await Vote.updateOne(
           { vote_id: votacaoId, deputy_id: deputyId, proposition_id: prop.proposition_id },
           {
@@ -169,9 +168,8 @@ async function runCrawler() {
           },
           { upsert: true }
         );
-
-        console.log(`      ✅ Saved vote for deputy ${v.deputado_.nome} (${voteValue})`);
       }
+      
     }
 
     await Proposition.updateOne(

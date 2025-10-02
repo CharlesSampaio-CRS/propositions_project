@@ -19,9 +19,9 @@ const deputySchema = new mongoose.Schema({
   phone: String,
   photo_url: String,
   mandate: {
-    start: Date,
-    end: Date,
-    type: String,
+    start: { type: Date, default: null },
+    end: { type: Date, default: null },
+    type: { type: String, default: null }
   },
   office: {
     name: String,
