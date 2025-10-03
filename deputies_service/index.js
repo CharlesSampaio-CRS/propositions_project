@@ -9,7 +9,7 @@ dotenv.config();
 // MongoDB
 // =======================
 mongoose
-  .connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
+  .connect(process.env.MONGO_URI)
   .then(() => console.log("📦 MongoDB connected"))
   .catch((err) => console.error("❌ MongoDB connection error:", err));
 
@@ -34,6 +34,9 @@ const baseUrl = "https://dadosabertos.camara.leg.br/api/v2";
 let crawling = false;
 let crawlPromise = null;
 
+// =======================
+// Fetch com retry
+// =======================
 async function fetchWithRetry(url, retries = 3, delay = 2000) {
   for (let i = 0; i < retries; i++) {
     try {
@@ -47,10 +50,12 @@ async function fetchWithRetry(url, retries = 3, delay = 2000) {
   }
 }
 
+// =======================
+// Crawler
+// =======================
 async function runCrawler() {
   crawling = true;
   let page = 1;
-  const today = new Date().toISOString().split("T")[0];
 
   while (crawling) {
     try {
@@ -64,52 +69,61 @@ async function runCrawler() {
         if (!crawling) break;
 
         try {
+          // 🔹 Buscar detalhes completos
+          const details = await fetchWithRetry(`${baseUrl}/deputados/${d.id}`);
+          const info = details.dados;
+
           const deputyData = {
-            deputy_id: d.id,
-            name: d.nome,
-            party: d.siglaPartido,
-            state: d.siglaUf,
-            email: d.email,
-            phone: d.telefone,
-            photo_url: d.urlFoto,
-            mandate: d.ultimoStatus?.mandato
+            deputy_id: info.id,
+            name: info.ultimoStatus.nome,
+            party: info.ultimoStatus.siglaPartido,
+            state: info.ultimoStatus.siglaUf,
+            email: info.ultimoStatus.gabinete?.email || null,
+            phone: info.ultimoStatus.gabinete?.telefone || null,
+            photo_url: info.ultimoStatus.urlFoto,
+            mandate: info.ultimoStatus.mandato
               ? {
-                  start: d.ultimoStatus.mandato.dataInicio ? new Date(d.ultimoStatus.mandato.dataInicio) : null,
-                  end: d.ultimoStatus.mandato.dataFim ? new Date(d.ultimoStatus.mandato.dataFim) : null,
-                  type: d.ultimoStatus.mandato.tipoMandato || null,
+                  start: info.ultimoStatus.mandato.dataInicio ? new Date(info.ultimoStatus.mandato.dataInicio) : null,
+                  end: info.ultimoStatus.mandato.dataFim ? new Date(info.ultimoStatus.mandato.dataFim) : null,
+                  type: info.ultimoStatus.mandato.tipoMandato || null,
                 }
               : null,
-            office: d.ultimoStatus?.gabinete
+            office: info.ultimoStatus.gabinete
               ? {
-                  name: d.ultimoStatus.gabinete.nome || null,
-                  room: d.ultimoStatus.gabinete.sala || null,
-                  phone: d.ultimoStatus.gabinete.telefone || null,
-                  email: d.ultimoStatus.gabinete.email || null,
+                  name: info.ultimoStatus.gabinete.nome || null,
+                  room: info.ultimoStatus.gabinete.sala || null,
+                  phone: info.ultimoStatus.gabinete.telefone || null,
+                  email: info.ultimoStatus.gabinete.email || null,
                 }
               : null,
             dateProcessed: new Date(),
           };
-        
+
           await Deputy.findOneAndUpdate(
-            { deputy_id: d.id }, 
+            { deputy_id: info.id },
             { $set: deputyData },
             { upsert: true, new: true }
           );
+
+          console.log(`✅ Deputy saved: ${info.ultimoStatus.nome} (${info.ultimoStatus.siglaPartido}-${info.ultimoStatus.siglaUf})`);
         } catch (err) {
-          console.error(`❌ Error saving deputy ${d.id} - ${d.nome}:`, err);
+          console.error(`❌ Error saving deputy ${d.id} - ${d.nome}:`, err.message);
         }
       }
 
       page++;
 
     } catch (err) {
-      console.error(`❌ Error fetching page ${page}:`, err);
+      console.error(`❌ Error fetching page ${page}:`, err.message);
       await new Promise(r => setTimeout(r, 5000));
     }
   }
   crawling = false;
 }
 
+// =======================
+// Fastify Routes
+// =======================
 fastify.get("/deputies/start", async () => {
   if (!crawling) {
     crawlPromise = runCrawler();
@@ -127,10 +141,10 @@ fastify.get("/deputies/stop", async () => {
   return { message: "Deputies crawler is not running" };
 });
 
-
+// =======================
+// Start server
+// =======================
 fastify.listen({ port: 3002, host: "0.0.0.0" }, (err, address) => {
   if (err) throw err;
   console.log(`🚀 Deputies Service running at ${address}`);
 });
-
-
